@@ -107,6 +107,23 @@ def test_metric_helpers_should_emit_typed_events_when_monitoring_is_enabled(
     }
 
 
+def test_metric_histogram_should_carry_buckets_when_provided(
+    recording_client: RecordingClient,
+) -> None:
+    buckets = (0.1, 0.5, 1.0)
+
+    api.metric_histogram("latency", value=0.3, documentation="rtt", buckets=buckets, worker="w0")
+    api.metric_histogram("plain", value=0.9, worker="w1")
+
+    carried = recording_client.events[0]
+    assert carried["kind"] == MonitorEventKind.HISTOGRAM
+    assert carried["buckets"] == buckets
+    assert carried["value"] == 0.3
+    # When buckets are omitted the field still exists (None) so the hub handler
+    # can read it unconditionally without a KeyError.
+    assert recording_client.events[1]["buckets"] is None
+
+
 def test_trace_state_should_merge_same_state_and_ignore_shadow_when_lane_is_busy(
     recording_client: RecordingClient,
     monkeypatch: pytest.MonkeyPatch,

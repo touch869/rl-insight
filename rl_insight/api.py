@@ -163,7 +163,12 @@ def metric_gauge(
 
 
 def metric_histogram(
-    name: str, value: float, documentation: str = "", **labels: Any
+    name: str,
+    value: float,
+    documentation: str = "",
+    *,
+    buckets: tuple[float, ...] | None = None,
+    **labels: Any,
 ) -> None:
     """Record one sample into a Prometheus histogram.
 
@@ -171,10 +176,21 @@ def metric_histogram(
         name: Metric name.
         value: Observed sample.
         documentation: Help string.
+        buckets: Optional histogram bucket upper bounds; ``None`` uses the
+            ``prometheus_client`` defaults. Only takes effect the first time a
+            given ``(name, labels)`` histogram is created (the registry caches
+            histograms by name + label set).
         **labels: Extra labels attached to the event.
     """
     doc = documentation or f"Histogram {name}"
-    _emit(MonitorEventKind.HISTOGRAM, name, float(value), doc, labels)
+    _emit(
+        MonitorEventKind.HISTOGRAM,
+        name,
+        float(value),
+        doc,
+        labels,
+        buckets=buckets,
+    )
 
 
 @dataclass
@@ -352,6 +368,7 @@ def _emit(
     value: float,
     documentation: str,
     labels: dict[str, Any],
+    buckets: tuple[float, ...] | None = None,
 ) -> None:
     """If monitoring is on, forward a Prometheus metric event to the hub.
 
@@ -361,6 +378,8 @@ def _emit(
         value: Sample or increment amount.
         documentation: Help text stored with the series.
         labels: Label dimensions for the observation.
+        buckets: Histogram bucket upper bounds (histogram events only);
+            ignored by the counter/gauge hub handlers.
     """
     if not _STATE.enabled or _STATE.client is None:
         return
@@ -370,6 +389,7 @@ def _emit(
         "documentation": documentation,
         "value": value,
         "labels": {**_STATE.labels, **labels},
+        "buckets": buckets,
     }
     _STATE.client.apply_event(event)
 

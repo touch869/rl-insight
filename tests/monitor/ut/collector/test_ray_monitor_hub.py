@@ -103,6 +103,16 @@ def test_init_should_configure_collectors_and_register_scrape_target_when_create
             "distribution",
             call("latency", "", 12.0, {}, {}, buckets=None),
         ),
+        (
+            {
+                "kind": "histogram",
+                "name": "latency",
+                "value": 12,
+                "buckets": (0.1, 0.5, 1.0),
+            },
+            "distribution",
+            call("latency", "", 12.0, {}, {}, buckets=(0.1, 0.5, 1.0)),
+        ),
     ],
 )
 def test_apply_event_should_dispatch_metric_when_kind_is_supported(

@@ -155,7 +155,7 @@ class MonitorHubActor(MonitorCollector):
             float(event["value"]),
             {},
             dict(event.get("labels") or {}),
-            buckets=None,
+            buckets=event.get("buckets"),
         )
 
     def _handle_trace(self, event: dict[str, Any]) -> None:
